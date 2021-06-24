@@ -6,7 +6,7 @@ use App\Models\admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
-
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -34,16 +34,20 @@ class AuthController extends Controller
             'password' => 'required|string|min:6',
         ]);
 
+
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
+        // $token_validity = (24 * 60);
+        // $this->guard()->factory()->setTTL($token_validity);
+
         if (!$token = auth()->attempt($validator->validated())) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
-        $user=auth()->user();
+        // $user=auth()->user();
 
-        echo "hello ".$user['name']." you're a ".$user['user_type']."\n";
+        // echo "hello ".$user['name']." you're a ".$user['user_type']."\n";
 
         return $this->createNewToken($token);
     }
@@ -103,6 +107,9 @@ class AuthController extends Controller
     {
         auth()->logout();
 
+        // $this->guard()->logout();
+
+
         return response()->json(['message' => 'User successfully signed out']);
     }
 
@@ -142,4 +149,11 @@ class AuthController extends Controller
             'user' => auth()->user()
         ]);
     }
+
+
+
+    protected function guard(){
+        return Auth::guard();
+    }
+
 }

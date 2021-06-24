@@ -17,8 +17,12 @@ class pfe extends Model
         'id_encadrant'
     ];
 
-    protected $hidden=[
-        'etudiant_id',
-        'id_encadrant'
-    ];
+    public function etudiant(){
+        
+    }
+
+    // protected $hidden=[
+    //     'etudiant_id',
+    //     'id_encadrant'
+    // ];
 }

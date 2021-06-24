@@ -6,48 +6,206 @@ use App\Models\admin;
 use App\Models\Etudiant;
 use App\Models\Professeur;
 use Illuminate\Http\Request;
-
+use Carbon\Carbon;
+use App\Models\pfe;
 use App\Http\Controllers\AuthController;
 use App\Models\Module;
+use App\Models\Note;
 use App\Models\User;
 use Exception;
+use Illuminate\Support\Facades\Auth;
+
+use function PHPUnit\Framework\countOf;
 
 class AdminController extends Controller
 {
+
+    //----------AUTHENTIFICATION OF USER--------------//
+    protected $user;
+
+    public function __construct()
+    {
+        $this->middleware('auth:api');
+        $this->user = $this->guard()->user();
+
+    }
+
+    //end __construct()
+    protected function guard(){
+        return Auth::guard();
+    }
+    // //---------------END OF AUTHENTIFICATION--------------//
+
+
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()   //returns the corresponding page (note,student,prof,emploi,etc)
+    public function getEtud()   //returns the corresponding page (note,student,prof,emploi,etc)
     {
-        // try{
-        //     if(auth()->user()['user_type']=='admin'){
-            // return $user->getJWTIdentifier();
+       if(Auth::guard()->user()['user_type']=='admin'){
+            return Etudiant::all();
+        }else{
+            return "not admin";
+        }
+    }
 
-                return Etudiant::all();
-            
+    public function getProf()   //returns the corresponding page (note,student,prof,emploi,etc)
+    {
+       if(Auth::guard()->user()['user_type']=='admin'){
+            return Professeur::all();
+        }else{
+            return "not admin";
+        }
+    }
+    //------------------------------------------------------------------//
+    public function getAllPfe(){
+        if(Auth::guard()->user()['user_type']=='admin'){
+            $pfes=pfe::all();
+
+            $data=[];
+
+            foreach ($pfes as $key => $value){
+                $enc=Professeur::find($value->id_encadrant)['name'];
+                $etud=Etudiant::find($value->etudiant_id)['name'];
+
+                array_push($data,array("id"=>$value['id'],"sujet_pfe"=>$value['sujet_pfe'],"deadline_pfe"=>$value['deadline_pfe'],"commentaire_pfe"=>$value['commentaire_pfe'],"encadrant"=>$enc,"etudiant"=>$etud));
+
+            };
+            return $data;
+        }else{
+            return "not admin";
+        }
+    }
+
+    //------------------------------------------------------------------//
+    public function getNotes(){
+        if(Auth::guard()->user()['user_type']=='admin'){
+            $notes=Note::all();
+
+            $data=[];
+
+            foreach ($notes as $key => $value){
+                $module=Module::find($value->module_id)['nom_module'];
+                $etud=Etudiant::find($value->etudiant_id)['name'];
+
+                array_push($data,array("id"=>$value['id'],"note"=>$value['valeur_note'],"mention"=>$value['mention'],"module"=>$module,"etudiant"=>$etud));
+
+            };
+            return $data;
+        }else{
+            return "not admin";
+        }
+    }
+
+    //-------------------------------------------------------------------//
+    public function getmodules(){
+        if(Auth::guard()->user()['user_type']=='admin'){
+            $modules=Module::all();
+
+            $data=[];
+
+            foreach ($modules as $key => $value){
+                $prof=Professeur::find($value->id_prof)['name'];
+
+                array_push($data,array("id"=>$value['id'],"nom_module"=>$value['nom_module'],"prof"=>$prof));
+            };
+            return $data;
+        }else{
+            return "not admin";
+        }
+    }
 
 
-                // if($page=='student'){
-                //     return Etudiant::all();
-                // }
-                // if($page=='prof'){
-                //     return Professeur::all();
-                // }
-                /*
-                .
-                .
-                .
-                etc
-                */
-        // }
+    public function updatePFE(Request $request,$id_pfe){
 
-        // }
-        // catch(Exception $e){
-        //     return $e;
-        // }
+        if(Auth::guard()->user()['user_type']=='admin'){
+            if($pfe_update=pfe::find($id_pfe)){
 
+                $pfe_update->update(['sujet_pfe' => $request->sujet_pfe]);
+                $pfe_update->update(['deadline_pfe' => $request->deadline_pfe]);
+                $pfe_update->update(['commentaire_pfe' => $request->commentaire_pfe]);
+
+                return "PFE successfully updated";
+            }
+            else{
+                return "PFE not found !!";
+            }
+        }
+
+    }
+
+    //----------------------------UPDATE NOTE---------------------------------------------//
+    public function updateNOTE(Request $request,$id){
+
+        if(Auth::guard()->user()['user_type']=='admin'){
+            if($note=Note::find($id)){
+
+                $note->update(['valeur_note' => $request->note]);
+                $note->update(['mention' => $request->mention]);
+
+                return "NOTE successfully updated";
+            }
+            else{
+                return "PFE not found !!";
+            }
+        }
+
+    }
+
+    public function deletePFE($id){
+        if(Auth::guard()->user()['user_type']=='admin'){
+            if(pfe::find($id)->delete()){
+                return "Successfully Deleted!!";
+            }
+        }
+        else{
+            return "PFE Not found !!";
+        }
+
+    }
+
+    //---------------------------------SUPPRIMMER MODULES--------------------------//
+    public function deleteMODULE($id){
+        if(Auth::guard()->user()['user_type']=='admin'){
+            if(Module::find($id)->delete()){
+                return "Successfully Deleted!!";
+            }
+        }
+        else{
+            return "Module Not found !!";
+        }
+    }
+
+
+
+    //----------------------------------AJOUTER PFE--------------------------------//
+    public function ajouterPFE(Request $request,$id_prof,$id_student){
+
+        $prof_id=Professeur::where('user_id',auth()->user()->id)->get()[0]['id'];
+
+            if(auth()->user()['user_type']=='admin' && $prof_id){
+
+                    if(Etudiant::find($id_student)){
+                        pfe::create(
+                            [
+                                'sujet_pfe'=>$request['sujet_pfe'],
+                                'deadline_pfe'=>Carbon::now(),
+                                'commentaire_pfe'=>$request['commentaire_pfe'],
+                                'id_encadrant'=>$prof_id,
+                                'etudiant_id'=>$id_student,
+                            ]
+                        );
+                        return "PFE added !!";
+                    }
+                    else{
+                        return "Student Not Found!!";
+                    }
+            }
+            else{
+                "Not professor !!";
+            }
     }
 
 
@@ -60,7 +218,6 @@ class AdminController extends Controller
      */
     public function store(Request $request)    //creating a new authenticated user (student or prof) as an admin
     {
-        try{
             if(auth()->user()['user_type']=='admin'){
                 //don't forget 'password_confirmation' in the front-end form
                 $new_user=app('App\Http\Controllers\AuthController')->register($request);  //registers a user in users table, to use token
@@ -92,13 +249,30 @@ class AdminController extends Controller
                 return $new_user;  //return the created user
             }
             else{
-                return "fuck off you're not an admin";   //authenticated but not admin !!
+                return "not  admin";   //authenticated but not admin !!
+            }
+
+    }
+
+    public function updateProf(Request $request, $id){
+
+        if(auth()->user()['user_type']=='admin'){
+
+            if($fk=Professeur::find($id)['user_id']){
+
+                //  //------------UPDATING THE USER IN USERS TABLE-----//
+                User::find($fk)->update(['name' => $request->new_name]);
+                User::find($fk)->update(['email' => $request->new_email]);
+                 //--------------------------------------------------------//
+                 Professeur::find($id)->update(['name' => $request->new_name]);
+                 Professeur::find($id)->update(['email' => $request->new_email]);
+
+                return "Successfully updated!!";
+            }
+            else{
+                return "The user doesn't exist";
             }
         }
-        catch(Exception $e){
-            return $e;
-        }
-
 
     }
 
@@ -110,54 +284,40 @@ class AdminController extends Controller
      * @param  \App\Models\admin  $admin
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)  //update a users info
+    public function updateEtud(Request $request, $id)  //update a users info
     {
-        try{
             if(auth()->user()['user_type']=='admin'){
 
-                if($user_to_update=User::find($id)){
+                if($fk=Etudiant::find($id)['user_id']){
 
                     //  //------------UPDATING THE USER IN USERS TABLE-----//
-                     $user_to_update->update(['name' => $request->new_name]);
-                     $user_to_update->update(['email' => $request->new_email]);
-                     $user_to_update->update(['password',bcrypt($request->new_password)]);
+                    User::find($fk)->update(['name' => $request->new_name]);
+                    User::find($fk)->update(['email' => $request->new_email]);
+                     //--------------------------------------------------------//
+                     Etudiant::find($id)->update(['name' => $request->new_name]);
+                     Etudiant::find($id)->update(['email' => $request->new_email]);
 
-                    // //------------UPDATING THE USER IN USERS TABLE-----//
-                    // $user_to_update->name=$request['new_name'];
-                    // $user_to_update->email=$request['new_email'];
-                    // $user_to_update->password=bcrypt($request->new_password);
-                    // $user_to_update->push();
-
-                    // // ------------if the user to update is a 'student'----------//
-                    if($user_to_update->user_type=="student"){
-                        $fk=Etudiant::where('user_id',$id)->get(); //getting the student  REFACTOR LATER !!
-
-                        $update=Etudiant::find($fk[0]['id']);  //getting the ID
-
-                        $update->update(['name' => $request->new_name]);
-                        $update->update(['email' => $request->new_email]);
-
-                    }
-                    // //-----------if the user to update is a 'professor'-----------//
-                    else if($user_to_update->user_type=="professor"){
-                        $fk=Professeur::where('user_id',$id)->get();  //getting the student  REFACTOR LATER !!
-
-                        $update=Professeur::find($fk[0]['id']);  //getting the ID
-
-                        $update->update(['name' => $request->new_name]);
-                        $update->update(['email' => $request->new_email]);
-
-                    }
+                    return "Successfully updated!!";
                 }
                 else{
                     return "The user doesn't exist";
                 }
             }
-        }
-        catch(Exception $e){
-            return $e;
-        }
     }
+
+
+    public function updateMOD(Request $request, $id)  //update a users info
+    {
+            if(auth()->user()['user_type']=='admin'){
+                if($mod=Module::find($id)){
+                    $mod->update(['nom_module'=>$request->nom_module]);
+                }
+                return "Successfully updated!!";
+                }
+                else{
+                    return "Module doesn't exist";
+                }
+            }
 
     /**
      * Remove the specified resource from storage.
@@ -165,28 +325,61 @@ class AdminController extends Controller
      * @param  \App\Models\admin  $admin
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)   //deletes the user
-    {
-        try{
 
+    public function destroyEtud($id){  //deletes the user
             if(auth()->user()['user_type']=='admin'){   //only if authenticated and admin
                                                         //token must be stored !!
-                if(User::find($id)){
-                    User::find($id)->delete();
+                if($fk=Etudiant::find($id)['user_id']){
+                    User::find($fk)->delete();
                     return "User Successfully Deleted";
-                }else{
+                }
+                else{
+                    return "User Not Found !!";
+                }
+            }
+
+            else{
+                return "not admin";
+            }
+
+    }
+
+    public function destroyProf($id)   //deletes the user
+    {
+            if(auth()->user()['user_type']=='admin'){   //only if authenticated and admin
+                                                        //token must be stored !!
+                if($fk=Professeur::find($id)['user_id']){
+                    User::find($fk)->delete();
+                    return "User Successfully Deleted";
+                }
+                else{
+                    return "User Not Found !!";
+                }
+            }
+
+            else{
+                return "not admin";
+            }
+    }
+
+    //---------------------------------------delete note-------------------------------//
+    public function destroyNote($id)   //deletes the user
+    {
+            if(auth()->user()['user_type']=='admin'){   //only if authenticated and admin
+                                                        //token must be stored !!
+                if(Note::find($id)->delete()){
+                    return "Note Successfully Deleted";
+                }
+                else{
                     return "User Not Found !!";
                 }
             }
             else{
-                return "unauthorized";
+                return "not admin";
             }
-        }
-        catch(Exception $e){
-            return $e;
-        }
 
     }
+
 
 
     //-------------------CREATING MODULES FOR PROFS-------------------------------//
@@ -197,50 +390,26 @@ class AdminController extends Controller
         each input will have a name 'module_1','module_2' , etc
         */
         $i=1;
-        try{
-            if(auth()->user()['user_type']=='admin'){
+        if(auth()->user()['user_type']=='admin'){
 
-                if(Professeur::find($id)){
-
-                    while ($i <= $nbreModule) {
-                        Module::create([
-                            'nom_module'=>$request['module_'.$i++],
-                            'id_prof'=>$id,  //ID du prof choisit
-                        ]);
-                    }
-                }
-                else{
-                    return "this ID doesn't exist !!";
+            if(Professeur::find($id)){
+                while ($i <= $nbreModule) {
+                    Module::create([
+                        'nom_module'=>$request['module_'.$i++],
+                        'id_prof'=>$id,  //ID du prof choisit
+                    ]);
                 }
             }
             else{
-                return "unauthorized";
+                return "this ID doesn't exist !!";
             }
         }
-        catch(Exception $e){
-            return $e;
+        else{
+            return "not admin";
         }
     }
 
 
-    //---------------------------------SUPPRIMMER MODULES--------------------------//
-    public function deleteModule($idModule){
-        try{
-            if(auth()->user()['user_type']=='admin'){
-
-                if(Module::find($idModule)->delete()){
-                    return "Successfully Deleted";
-                }
-                else{
-                    return "Module Not found !!";
-                }
-            }
-        }
-        catch(Exception $e){
-            return $e;
-        }
-
-    }
 
 
 }
