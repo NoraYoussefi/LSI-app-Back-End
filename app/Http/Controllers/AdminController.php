@@ -14,6 +14,7 @@ use App\Models\Note;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Event;
 
 use function PHPUnit\Framework\countOf;
 
@@ -42,16 +43,21 @@ class AdminController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function getEtud()   //returns the corresponding page (note,student,prof,emploi,etc)
+
+
+    public function getEtud()
     {
        if(Auth::guard()->user()['user_type']=='admin'){
+
             return Etudiant::all();
-        }else{
+
+        }
+        else{
             return "not admin";
         }
     }
 
-    public function getProf()   //returns the corresponding page (note,student,prof,emploi,etc)
+    public function getProf()
     {
        if(Auth::guard()->user()['user_type']=='admin'){
             return Professeur::all();
@@ -59,18 +65,28 @@ class AdminController extends Controller
             return "not admin";
         }
     }
-    //------------------------------------------------------------------//
+
+
     public function getAllPfe(){
         if(Auth::guard()->user()['user_type']=='admin'){
+
             $pfes=pfe::all();
+
 
             $data=[];
 
             foreach ($pfes as $key => $value){
                 $enc=Professeur::find($value->id_encadrant)['name'];
                 $etud=Etudiant::find($value->etudiant_id)['name'];
-
-                array_push($data,array("id"=>$value['id'],"sujet_pfe"=>$value['sujet_pfe'],"deadline_pfe"=>$value['deadline_pfe'],"commentaire_pfe"=>$value['commentaire_pfe'],"encadrant"=>$enc,"etudiant"=>$etud));
+                array_push($data,
+                    array(  "id"=>$value['id'],
+                            "sujet_pfe"=>$value['sujet_pfe'],
+                            "deadline_pfe"=>$value['deadline_pfe'],
+                            "commentaire_pfe"=>$value['commentaire_pfe'],
+                            "encadrant"=>$enc,
+                            "etudiant"=>$etud
+                        )
+                );
 
             };
             return $data;
@@ -79,7 +95,10 @@ class AdminController extends Controller
         }
     }
 
+
     //------------------------------------------------------------------//
+
+
     public function getNotes(){
         if(Auth::guard()->user()['user_type']=='admin'){
             $notes=Note::all();
@@ -90,7 +109,14 @@ class AdminController extends Controller
                 $module=Module::find($value->module_id)['nom_module'];
                 $etud=Etudiant::find($value->etudiant_id)['name'];
 
-                array_push($data,array("id"=>$value['id'],"note"=>$value['valeur_note'],"mention"=>$value['mention'],"module"=>$module,"etudiant"=>$etud));
+                array_push($data,
+                    array(  "id"=>$value['id'],
+                            "note"=>$value['valeur_note'],
+                            "mention"=>$value['mention'],
+                            "module"=>$module,
+                            "etudiant"=>$etud
+                        )
+                    );
 
             };
             return $data;
@@ -154,6 +180,9 @@ class AdminController extends Controller
 
     }
 
+
+
+
     public function deletePFE($id){
         if(Auth::guard()->user()['user_type']=='admin'){
             if(pfe::find($id)->delete()){
@@ -216,43 +245,47 @@ class AdminController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)    //creating a new authenticated user (student or prof) as an admin
-    {
-            if(auth()->user()['user_type']=='admin'){
-                //don't forget 'password_confirmation' in the front-end form
-                $new_user=app('App\Http\Controllers\AuthController')->register($request);  //registers a user in users table, to use token
 
-                $id=(collect($new_user)->toArray())['original']['user']['id'];
 
-                  //the user_id (fk) of the new user (prof/student)
+public function store(Request $request)
+{
+        if(auth()->user()['user_type']=='admin'){
 
-                if($request['user_type']=='student'){
-                    Etudiant::create([
-                        'name'=>$request['name'],
-                        'email'=>$request['email'],
-                        'user_id'=>$id,
-                        'cne'=>$id,   //can be changed to actual CNE in admin CRUD
-                    ]);
-                }
-                else if($request['user_type']=='professor'){
-                    Professeur::create([
-                        'name'=>$request['name'],
-                        'email'=>$request['email'],
-                        'user_id'=>$id,
-                        'js_id_emploi'=>'calendar_id_'.$id,  //creating the id of the calendar = user_id (fix it!!)
-                    ]);
-                }
-                else{
-                    return "Invalid User Type :(, Must be 'student' or 'professor' !!!";
-                }
+            $new_user=app('App\Http\Controllers\AuthController')->register($request);
 
-                return $new_user;  //return the created user
+            $id=(collect($new_user)->toArray())['original']['user']['id'];  //ID de l'utilisateur creer
+
+                    //Si l'utilisateur est un Etudiant
+                    if($request['user_type']=='student'){
+                        Etudiant::create([
+                            'name'=>$request['name'],
+                            'email'=>$request['email'],
+                            'user_id'=>$id,
+                            'cne'=>$id,         ]);
+                    }
+                    //Si l'utilisateur est un Professeur
+                    else if($request['user_type']=='professor'){
+                        Professeur::create([
+                            'name'=>$request['name'],
+                            'email'=>$request['email'],
+                            'user_id'=>$id,
+                            'js_id_emploi'=>'calendar_id_'.$id,         ]);
+                    }
+                    else{
+                        return "Invalid User Type :(, Must be 'student' or 'professor' !!!";
+                    }
+                return $new_user;
             }
             else{
-                return "not  admin";   //authenticated but not admin !!
+                return "vous n'etes pas un admin";   //authentifie mais pas admin
             }
-
     }
+
+
+
+
+
+
 
     public function updateProf(Request $request, $id){
 
@@ -261,8 +294,10 @@ class AdminController extends Controller
             if($fk=Professeur::find($id)['user_id']){
 
                 //  //------------UPDATING THE USER IN USERS TABLE-----//
-                User::find($fk)->update(['name' => $request->new_name]);
-                User::find($fk)->update(['email' => $request->new_email]);
+                 User::find($fk)->update(['name' => $request->new_name]);
+                 User::find($fk)->update(['email' => $request->new_email]);
+
+
                  //--------------------------------------------------------//
                  Professeur::find($id)->update(['name' => $request->new_name]);
                  Professeur::find($id)->update(['email' => $request->new_email]);
@@ -276,6 +311,43 @@ class AdminController extends Controller
 
     }
 
+    //----------------------------------CREATE EVENTS AS AN ADMIN--------------------------//
+        public function createEvent(Request $request){
+            if(auth()->user()['user_type']=='admin'){
+
+                Event::create(
+                    [
+                        'event_name'=>$request->event_name,
+                        'start_time'=>$request->start_time,
+                        'end_time'=>$request->end_time,
+                        'id_prof'=>auth()->user()->id,
+                    ]
+                );
+            }
+            else{
+                "Not admin !!";
+            }
+    }
+
+     //--------------------------------GET EVENTS------------------------------//
+
+
+
+     public function getEvents(){
+        try{
+            if(Auth::guard()->user()['user_type']=='admin'){
+                return Event::all();
+            }else{
+                return "not amdin";
+            }
+        }
+        catch(Exception $e){
+            return $e;
+        }
+    }
+
+
+
 
     /**
      * Update the specified resource in storage.
@@ -284,6 +356,10 @@ class AdminController extends Controller
      * @param  \App\Models\admin  $admin
      * @return \Illuminate\Http\Response
      */
+
+
+
+
     public function updateEtud(Request $request, $id)  //update a users info
     {
             if(auth()->user()['user_type']=='admin'){
@@ -326,9 +402,9 @@ class AdminController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    public function destroyEtud($id){  //deletes the user
-            if(auth()->user()['user_type']=='admin'){   //only if authenticated and admin
-                                                        //token must be stored !!
+
+    public function destroyEtud($id){
+            if(auth()->user()['user_type']=='admin'){
                 if($fk=Etudiant::find($id)['user_id']){
                     User::find($fk)->delete();
                     return "User Successfully Deleted";
@@ -337,17 +413,16 @@ class AdminController extends Controller
                     return "User Not Found !!";
                 }
             }
-
             else{
                 return "not admin";
             }
-
     }
 
-    public function destroyProf($id)   //deletes the user
+
+    public function destroyProf($id)
     {
-            if(auth()->user()['user_type']=='admin'){   //only if authenticated and admin
-                                                        //token must be stored !!
+            if(auth()->user()['user_type']=='admin'){
+
                 if($fk=Professeur::find($id)['user_id']){
                     User::find($fk)->delete();
                     return "User Successfully Deleted";
@@ -363,10 +438,12 @@ class AdminController extends Controller
     }
 
     //---------------------------------------delete note-------------------------------//
-    public function destroyNote($id)   //deletes the user
+
+
+    public function destroyNote($id)
     {
-            if(auth()->user()['user_type']=='admin'){   //only if authenticated and admin
-                                                        //token must be stored !!
+            if(auth()->user()['user_type']=='admin'){
+
                 if(Note::find($id)->delete()){
                     return "Note Successfully Deleted";
                 }
@@ -383,12 +460,7 @@ class AdminController extends Controller
 
 
     //-------------------CREATING MODULES FOR PROFS-------------------------------//
-    public function ajouterModules(Request $request, $id,$nbreModule){  //id of prof & nbreDeModules a ajouter
-        /*
-        FORM:
-        pick number of modules to add to a selected prof
-        each input will have a name 'module_1','module_2' , etc
-        */
+    public function ajouterModules(Request $request, $id,$nbreModule){
         $i=1;
         if(auth()->user()['user_type']=='admin'){
 
@@ -396,7 +468,7 @@ class AdminController extends Controller
                 while ($i <= $nbreModule) {
                     Module::create([
                         'nom_module'=>$request['module_'.$i++],
-                        'id_prof'=>$id,  //ID du prof choisit
+                        'id_prof'=>$id,
                     ]);
                 }
             }

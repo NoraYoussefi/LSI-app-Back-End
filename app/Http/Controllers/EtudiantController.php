@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Etudiant;
+use App\Models\Event;
 use App\Models\Module;
+use App\Models\Note;
 use App\Models\pfe;
 use Illuminate\Http\Request;
 use Exception;
@@ -32,7 +34,9 @@ class EtudiantController extends Controller
 
     public function getModules(){
         try{
+
             if(Auth::guard()->user()['user_type']=='student'){
+
                 return Module::all();
             }else{
                 return "not student";
@@ -50,7 +54,6 @@ class EtudiantController extends Controller
             if(Auth::guard()->user()['user_type']=='student'){
 
                 if($etud_id=Etudiant::where('user_id',auth()->user()->id)->get()[0]['id']){
-
                     return pfe::where('etudiant_id',$etud_id)->get();
                 }
                 else{
@@ -64,79 +67,55 @@ class EtudiantController extends Controller
             return $e;
         }
     }
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //
+
+
+    //--------------GET NOTES OF STUDENT-------------------------//
+    public function getNotes(){
+        try{
+            if(Auth::guard()->user()['user_type']=='student'){
+                $data=[];
+                if($etud_id=Etudiant::where('user_id',auth()->user()->id)->get()[0]['id']){
+
+                    $note=Note::where('etudiant_id',$etud_id)->get();  //gets the notes of the student
+
+                    foreach ($note as $key => $value) {
+
+                        $module=Module::find($value->module_id);
+                        //creates the array
+                        array_push($data,
+                                array(  "id"=>$value->id,
+                                        "note"=>$value->valeur_note,
+                                        "mention"=>$value->mention,
+                                        "module"=>$module->nom_module
+                                    )
+                                );
+
+                    }
+                    return $data;
+                }
+            }else{
+                return "not student";
+            }
+        }
+        catch(Exception $e){
+            return $e;
+        }
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
+    //--------------------------------GET EVENTS------------------------------//
+    public function getEvents(){
+        try{
+            if(Auth::guard()->user()['user_type']=='student'){
+
+                return Event::all();
+
+            }else{
+                return "not student";
+            }
+        }
+        catch(Exception $e){
+            return $e;
+        }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Etudiant  $etudiant
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Etudiant $etudiant)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Etudiant  $etudiant
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Etudiant $etudiant)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Etudiant  $etudiant
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Etudiant $etudiant)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Etudiant  $etudiant
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Etudiant $etudiant)
-    {
-        //
-    }
 }

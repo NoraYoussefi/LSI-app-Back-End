@@ -88,6 +88,12 @@ Route::group([
      Route::delete('deletemod/{id_module}', [AdminController::class, 'deleteMODULE']);
      Route::delete('deletenote/{id}', [AdminController::class, 'destroyNote']);
 
+     //----------------------AJOUTER EVENEMENT EMPLOI---------------------------//
+    Route::post('addevent', [AdminController::class, 'createEvent']);
+
+    //----------------------GET EVENTS ---------------------------//
+    Route::get('getevents', [AdminController::class, 'getEvents']);
+
 });
 
 
@@ -105,7 +111,7 @@ Route::group([
     Route::post('addpfe/{id_etudiant}', [ProfesseurController::class, 'ajouterPFE']);
 
     //----------------------AJOUTER EVENEMENT EMPLOI---------------------------//
-    Route::post('addevent', [ProfesseurController::class, 'createEventEmploi']);
+    Route::post('addevent', [ProfesseurController::class, 'createEvent']);
 
     //----------------------GET MODULES OF PROF---------------------------//
     Route::get('getmodules', [ProfesseurController::class, 'getModules']);
@@ -118,6 +124,12 @@ Route::group([
 
     //----------------------GET NOTES---------------------------//
     Route::get('getnote', [ProfesseurController::class, 'getNote']);
+
+    //----------------------GET EVENTS---------------------------//
+    Route::get('getevents', [ProfesseurController::class, 'getEvent']);
+
+    //----------------------GET EVENTS---------------------------//
+    Route::delete('deletenote/{id}', [ProfesseurController::class, 'deleteNote']);
 });
 
 
@@ -135,5 +147,11 @@ Route::group([
 
     //----------------------GET PFES OFF ETUDIANT---------------------------//
     Route::get('getpfes', [EtudiantController::class, 'getPfe']);
+
+     //----------------------GET NOTES OFF ETUDIANT---------------------------//
+     Route::get('getnotes', [EtudiantController::class, 'getNotes']);
+
+     //----------------------GET EVENTS ---------------------------//
+     Route::get('getevents', [EtudiantController::class, 'getEvents']);
 });
 

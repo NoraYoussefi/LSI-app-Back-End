@@ -25,10 +25,11 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login(Request $request)   //returns the corresponding token of the logged in user
+
+
+    public function login(Request $request)
     {
 
-        // return "hello login";
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required|string|min:6',
@@ -39,27 +40,24 @@ class AuthController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        // $token_validity = (24 * 60);
-        // $this->guard()->factory()->setTTL($token_validity);
-
         if (!$token = auth()->attempt($validator->validated())) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
-        // $user=auth()->user();
-
-        // echo "hello ".$user['name']." you're a ".$user['user_type']."\n";
 
         return $this->createNewToken($token);
     }
+
+
 
     /**
      * Register a User.
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function register(Request $request)  //created a new token for registres users
+
+
+    public function register(Request $request)
     {
-        //the creation form in the front-end should have these inputs with the proper names & a password_confirmation!!
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|between:2,100',
             'email' => 'required|string|email|max:100|unique:users',
@@ -88,8 +86,6 @@ class AuthController extends Controller
             ]);
         }
         //---------------------------------------------------------------//
-
-
         return response()->json([
             'status' => true,
             'message' => 'User successfully registered as '.$user['user_type'],
@@ -103,12 +99,11 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function logout()   //log out the user and expires the token
+
+
+    public function logout()
     {
         auth()->logout();
-
-        // $this->guard()->logout();
-
 
         return response()->json(['message' => 'User successfully signed out']);
     }
@@ -128,6 +123,8 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+
+
     public function userProfile()
     {
         return response()->json(auth()->user());
@@ -140,6 +137,8 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+
+     
     protected function createNewToken($token)
     {
         return response()->json([
